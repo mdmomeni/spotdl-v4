@@ -1,6 +1,9 @@
 from dataclasses import dataclass
-from typing import List, Set
+from typing import Any, Dict, List, Set
+
 from slugify import slugify
+
+from spotdl.types.song import SongList
 from spotdl.types.song import Song
 from spotdl.types.album import Album
 from spotdl.utils.spotify import SpotifyClient
@@ -13,17 +16,14 @@ class ArtistError(Exception):
 
 
 @dataclass(frozen=True)
-class Artist:
+class Artist(SongList):
     """
     Artist class.
     Contains all the information about an artist.
     Frozen to prevent accidental modification.
     """
 
-    name: str
-    artist_id: str
     genres: List[str]
-    tracks: List[Song]
     albums: List[Album]
 
     @classmethod
@@ -35,18 +35,8 @@ class Artist:
         if "open.spotify.com" not in url or "artist" not in url:
             raise ArtistError(f"Invalid URL: {url}")
 
-        # query spotify for artist details
-        spotify_client = SpotifyClient()
-
-        # get artist info
-        raw_artist_meta = spotify_client.artist(url)
-
-        if raw_artist_meta is None:
-            raise ArtistError(
-                "Couldn't get metadata, check if you have passed correct artist id"
-            )
-
-        urls = cls.get_albums(url)
+        metadata = Artist.get_metadata(url)
+        album_urls = cls.get_albums(url)
 
         tracks: List[Song] = []
         albums: List[Album] = []
@@ -54,29 +44,44 @@ class Artist:
         # get artist tracks
         # same as above, but for tracks
         known_tracks: Set[str] = set()
-        if len(urls) < 1:
+        if len(album_urls) < 1:
             raise ArtistError(
                 "Couldn't get albums, check if you have passed correct artist id"
             )
 
         # get all tracks from all albums
         # ignore duplicates
-        for album_url in urls:
+        urls = []
+        for album_url in album_urls:
             album = Album.from_url(album_url)
             albums.append(album)
-            for track in album.tracks:
-                track_name = slugify(track.name, to_lower=True)  # type: ignore
+            for track in album.songs:
+                track_name = slugify(track.name)  # type: ignore
                 if track_name not in known_tracks:
                     tracks.append(track)
+                    urls.append(track.url)
                     known_tracks.add(track_name)
 
         return cls(
-            name=raw_artist_meta["name"],
-            artist_id=raw_artist_meta["id"],
-            genres=raw_artist_meta["genres"],
-            tracks=tracks,
+            **metadata,
+            songs=tracks,
             albums=albums,
+            urls=urls,
         )
+
+    @staticmethod
+    def get_urls(url: str) -> List[str]:
+        """
+        Get urls for all songs for artist.
+        """
+
+        albums = Artist.get_albums(url)
+
+        urls = []
+        for album in albums:
+            urls.extend(Album.get_urls(album))
+
+        return urls
 
     @staticmethod
     def get_albums(url: str) -> List[str]:
@@ -98,7 +103,7 @@ class Artist:
         if artist_albums is not None:
             for album in artist_albums["items"]:
                 albums.append(album["external_urls"]["spotify"])
-                known_albums.add(slugify(album["name"], to_lower=True))  # type: ignore
+                known_albums.add(slugify(album["name"]))  # type: ignore
 
             # Fetch all artist albums
             while artist_albums and artist_albums["next"]:
@@ -107,7 +112,7 @@ class Artist:
                     break
 
                 for album in artist_albums["items"]:
-                    album_name = slugify(album["name"], to_lower=True)  # type: ignore
+                    album_name = slugify(album["name"])  # type: ignore
 
                     if album_name in known_albums:
                         albums.extend([item["uri"] for item in artist_albums["items"]])
@@ -115,3 +120,26 @@ class Artist:
                         known_albums.add(album_name)
 
         return albums
+
+    @staticmethod
+    def get_metadata(url: str) -> Dict[str, Any]:
+        """
+        Get metadata for artist.
+        """
+
+        # query spotify for artist details
+        spotify_client = SpotifyClient()
+
+        # get artist info
+        raw_artist_meta = spotify_client.artist(url)
+
+        if raw_artist_meta is None:
+            raise ArtistError(
+                "Couldn't get metadata, check if you have passed correct artist id"
+            )
+
+        return {
+            "name": raw_artist_meta["name"],
+            "genres": raw_artist_meta["genres"],
+            "url": url,
+        }

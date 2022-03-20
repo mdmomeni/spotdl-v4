@@ -4,7 +4,6 @@ from typing import List, Optional
 from pathlib import Path
 from yt_dlp.utils import sanitize_filename
 
-from slugify.main import Slugify
 from spotdl.types import Song
 
 VARS = [
@@ -65,7 +64,6 @@ def format_query(
     santitize: bool,
     file_extension: Optional[str] = None,
     short: bool = False,
-    song_list: Optional[List[Song]] = None,
 ) -> str:
     """
     Replace template variables with the actual values.
@@ -74,13 +72,25 @@ def format_query(
     if "{output-ext}" in template and file_extension is None:
         raise ValueError("file_extension is None, but template contains {output-ext}")
 
-    artists = ", ".join(song.artists)
-    position = (
-        str(song_list.index(song) + 1).zfill(len(str(len(song_list))))
-        if song_list
-        else ""
-    )
+    if (
+        any(k in template for k in ["{list-length}", "{list-position}", "{list-name}"])
+        and song.song_list is None
+    ):
+        # If the template contains {list-length} or {list-position} or {list-name},
+        # but the song_list is None, replace them with empty strings
+        for k in ["{list-length}", "{list-position}", "{list-name}"]:
+            template = template.replace(k, "")
+            template = template.replace(r"//", r"/")
 
+    # If template has only {output-ext}, fix it
+    # This can happen if the template consits of only list values
+    # and song.song_list is None
+    if template in ["/.{output-ext}", ".{output-ext}"]:
+        template = "{artists} - {title}.{output-ext}"
+
+    artists = ", ".join(song.artists)
+
+    # the code below is valid, song_list is actually checked for None
     formats = {
         "{title}": song.name,
         "{artists}": song.artists[0] if short is True else artists,
@@ -98,10 +108,21 @@ def format_query(
         "{isrc}": song.isrc,
         "{track-id}": song.song_id,
         "{publisher}": song.publisher,
-        "{list-position}": position,
-        "{list-length}": len(song_list) if song_list else "",
         "{output-ext}": file_extension,
     }
+
+    if song.song_list and any(
+        k in template for k in ["{list-length}", "{list-position}", "{list-name}"]
+    ):
+        formats.update(
+            {
+                "{list-name}": song.song_list.name,  # type: ignore
+                "{list-position}": str(song.song_list.songs.index(song) + 1).zfill(
+                    len(str(song.song_list.length))
+                ),
+                "{list-length}": song.song_list.length,
+            }
+        )
 
     if santitize:
         # sanitize the values in formats dict
@@ -134,7 +155,7 @@ def create_search_query(
     if not any(key in template for key in VARS):
         template = "{artist} - {title}" + template
 
-    return format_query(song, template, santitize, file_extension, short)
+    return format_query(song, template, santitize, file_extension, short=short)
 
 
 def create_file_name(
@@ -142,7 +163,6 @@ def create_file_name(
     template: str,
     file_extension: str,
     short: bool = False,
-    song_list: Optional[List[Song]] = None,
 ) -> Path:
     """
     Create the file name for the song.
@@ -164,7 +184,11 @@ def create_file_name(
         template += ".{output-ext}"
 
     formatted_string = format_query(
-        song, template, True, file_extension, short, song_list=song_list
+        song=song,
+        template=template,
+        santitize=True,
+        file_extension=file_extension,
+        short=short,
     )
 
     # Parse template as Path object
@@ -184,7 +208,10 @@ def create_file_name(
     # Check if the file name length is greater than 255
     if len(file.name) > 255:
         return create_file_name(
-            song, template, file_extension, short=True, song_list=song_list
+            song,
+            template,
+            file_extension,
+            short=True,
         )
 
     return file
@@ -209,13 +236,34 @@ def parse_duration(duration: Optional[str]) -> float:
         return 0.0
 
 
-def slugify(value: str, to_lower=True) -> str:
+def to_ms(
+    string: Optional[str] = None, precision: Optional[int] = None, **kwargs
+) -> float:
     """
-    Normalizes string, converts to lowercase, removes non-alpha characters,
-    and converts spaces to hyphens.
+    Convert a string to milliseconds.
+    You can either pass a string, or a set of keyword args ("hour", "min", "sec", "ms") to convert.
+    If "precision" is set, the result is rounded to the number of decimals given.
+    From: https://gist.github.com/Hellowlol/5f8545e999259b4371c91ac223409209
     """
 
-    return Slugify(to_lower=to_lower)(value)
+    if string:
+        hour = int(string[0:2])
+        minute = int(string[3:5])
+        sec = int(string[6:8])
+        milliseconds = int(string[10:11])
+    else:
+        hour = int(kwargs.get("hour", 0))
+        minute = int(kwargs.get("min", 0))
+        sec = int(kwargs.get("sec", 0))
+        milliseconds = int(kwargs.get("ms", 0))
+
+    result = (
+        (hour * 60 * 60 * 1000) + (minute * 60 * 1000) + (sec * 1000) + milliseconds
+    )
+    if precision and isinstance(precision, int):
+        return round(result, precision)
+
+    return result
 
 
 def restrict_filename(pathobj: Path) -> Path:

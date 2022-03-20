@@ -16,7 +16,6 @@ class SongError(Exception):
 class Song:
     """
     Song class. Contains all the information about a song.
-    Frozen to prevent accidental modification.
     """
 
     name: str
@@ -38,8 +37,9 @@ class Song:
     explicit: bool
     publisher: str
     url: str
-    copyright: Optional[str]
+    copyright_text: Optional[str]
     download_url: Optional[str] = None
+    song_list: Optional["SongList"] = None
 
     @classmethod
     def from_url(cls, url: str) -> "Song":
@@ -76,7 +76,7 @@ class Song:
             artist=raw_track_meta["artists"][0]["name"],
             album_name=raw_album_meta["name"],
             album_artist=raw_album_meta["artists"][0]["name"],
-            copyright=raw_album_meta["copyrights"][0]["text"]
+            copyright_text=raw_album_meta["copyrights"][0]["text"]
             if raw_album_meta["copyrights"]
             else None,
             genres=raw_album_meta["genres"] + raw_artist_meta["genres"],
@@ -142,7 +142,7 @@ class Song:
         Returns a display name for the song.
         """
 
-        return f"{self.name} - {self.artist}"
+        return f"{self.artist} - {self.name}"
 
     @property
     def json(self) -> Dict[str, Any]:
@@ -151,3 +151,53 @@ class Song:
         """
 
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class SongList:
+    name: str
+    url: str
+    urls: List[str]
+    songs: List[Song]
+
+    @property
+    def length(self) -> int:
+        """
+        Get list length (number of songs).
+        """
+
+        return len(self.songs)
+
+    @classmethod
+    def create_basic_list(cls, url: str):
+        """
+        Create a basic list with only the required metadata and urls.
+        """
+
+        metadata = cls.get_metadata(url)
+        urls = cls.get_urls(url)
+
+        return cls(**metadata, urls=urls, songs=[])
+
+    @classmethod
+    def from_url(cls, url: str):
+        """
+        Initialize a SongList object from a URL.
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def get_urls(url: str) -> List[str]:
+        """
+        Get urls for all songs in url.
+        """
+
+        raise NotImplementedError
+
+    @staticmethod
+    def get_metadata(url: str) -> Dict[str, Any]:
+        """
+        Get metadata for list.
+        """
+
+        raise NotImplementedError

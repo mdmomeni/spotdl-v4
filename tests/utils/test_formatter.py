@@ -1,5 +1,5 @@
 from pathlib import Path
-from spotdl.types.song import Song
+from spotdl.types.song import Song, SongList
 from spotdl.utils.formatter import (
     create_song_title,
     sanitize_string,
@@ -53,12 +53,16 @@ def test_create_file_name():
         "download_url": "https://youtube.com/watch?v=rXwPt8DIj74",
         "artist": "Dirty Palm",
         "disc_count": 1,
-        "copyright": "",
+        "copyright_text": "",
         "publisher": "",
         "url": "https://open.spotify.com/track/1t2qKa8K72IBC8yQlhD9bU",
     }
 
     song = Song.from_dict(song_dict)
+
+    song.song_list = SongList(
+        "test", "test", [], [1, 2, 3, 4, song, 6, 7, 8, 9, 10, 11]  # type: ignore
+    )
 
     assert create_file_name(song, "test", "mp3") == Path(
         "test/Dirty Palm, Chandler Jewels - Ropes.mp3"
@@ -85,16 +89,12 @@ def test_create_file_name():
     assert create_file_name(song, "{isrc}.../...{title} - {artist}...", "mp3") == Path(
         "GB2LD2110301/Ropes - Dirty Palm....mp3"
     )
-
-    assert create_file_name(song, "{list-position}/{list-length} {title} - {artist}", "mp3", song_list=[song, 1, 2]) == Path(  # type: ignore
-        "1/3 Ropes - Dirty Palm.mp3"
-    )
-
-    assert create_file_name(song, "{list-position}/{list-length} {title} - {artist}", "mp3", song_list=[song, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) == Path(  # type: ignore
-        "01/11 Ropes - Dirty Palm.mp3"
-    )
-
-    assert create_file_name(song, "{list-position}/{list-length} {title} - {artist}", "mp3", song_list=[1, 2, 3, 4, song, 6, 7, 8, 9, 10, 11]) == Path(  # type: ignore
+    print(song.song_list)
+    assert create_file_name(
+        song,
+        "{list-position}/{list-length} {title} - {artist}",
+        "mp3",
+    ) == Path(  # type: ignore
         "05/11 Ropes - Dirty Palm.mp3"
     )
 

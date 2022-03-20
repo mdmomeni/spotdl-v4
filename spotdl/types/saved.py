@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import List
+from typing import Any, Dict, List
+from spotdl.types.song import SongList
 from spotdl.types.song import Song
 from spotdl.utils.spotify import SpotifyClient
 
@@ -11,9 +12,7 @@ class SavedError(Exception):
 
 
 @dataclass(frozen=True)
-class Saved:
-    tracks: List[Song]
-
+class Saved(SongList):
     @classmethod
     def load(cls):
         """
@@ -21,16 +20,22 @@ class Saved:
         Will throw an exception if users is not logged in.
         """
 
-        urls = cls.get_urls()
+        metadata = Saved.get_metadata("saved")
+
+        urls = cls.get_urls("saved")
 
         # Remove songs without id
         # and create Song objects
         tracks = [Song.from_url(url) for url in urls]
 
-        return cls(tracks)
+        return cls(
+            **metadata,
+            songs=tracks,
+            urls=urls,
+        )
 
     @staticmethod
-    def get_urls() -> List[str]:
+    def get_urls(_: str) -> List[str]:
         """
         Returns a list of urls of all saved tracks.
         """
@@ -62,3 +67,22 @@ class Saved:
             for track in saved_tracks
             if track and track.get("track", {}).get("id")
         ]
+
+    @classmethod
+    def create_basic_list(cls):
+        """
+        Create a basic list with only the required metadata and urls.
+        """
+
+        metadata = cls.get_metadata("saved")
+        urls = cls.get_urls("saved")
+
+        return cls(**metadata, urls=urls, songs=[])
+
+    @staticmethod
+    def get_metadata(url: str) -> Dict[str, Any]:
+        """
+        Returns metadata for a saved list.
+        """
+
+        return {"name": "Saved tracks", "url": url}

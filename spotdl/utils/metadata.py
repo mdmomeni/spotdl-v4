@@ -13,6 +13,12 @@ from mutagen.id3 import APIC as AlbumCover, USLT
 from spotdl.types import Song
 
 
+class MetadataError(Exception):
+    """
+    Base class for all exceptions related to metadata and id3 embedding.
+    """
+
+
 # Apple has specific tags - see mutagen docs -
 # http://mutagen.readthedocs.io/en/latest/api/mp4.html
 M4A_TAG_PRESET = {
@@ -105,8 +111,8 @@ def _embed_mp3_metadata(audio_file, song: Song):
     audio_file["date"] = song.date
     audio_file["originaldate"] = song.date
     audio_file["encodedby"] = song.publisher
-    if song.copyright:
-        audio_file["copyright"] = song.copyright
+    if song.copyright_text:
+        audio_file["copyright"] = song.copyright_text
 
     genres = song.genres
     if len(genres) > 0:
@@ -168,8 +174,8 @@ def _embed_basic_metadata(audio_file, song: Song, encoding, preset=TAG_PRESET):
     audio_file[preset["date"]] = song.date
     audio_file[preset["originaldate"]] = song.date
     audio_file[preset["genre"]] = song.genres[0]
-    if song.copyright:
-        audio_file[preset["copyright"]] = song.copyright
+    if song.copyright_text:
+        audio_file[preset["copyright"]] = song.copyright_text
 
     if encoding in ["flac", "ogg", "opus"]:
         zfilled_disc_number = str(song.disc_number).zfill(len(str(song.disc_count)))

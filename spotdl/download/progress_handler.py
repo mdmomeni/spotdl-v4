@@ -341,7 +341,6 @@ class SongTracker:
         delta = self.progress - self.old_progress
 
         if not self.parent.simple_tui:
-
             # Update the progress bar
             # `start_task` called everytime to ensure progress is remove from indeterminate state
             self.parent.rich_progress_bar.start_task(self.task_id)
@@ -355,47 +354,36 @@ class SongTracker:
             # If task is complete
             if self.progress == 100 or message == "Error":
                 self.parent.overall_completed_tasks += 1
-                # if self.parent.is_legacy:
                 self.parent.rich_progress_bar.remove_task(self.task_id)
-
-            # Update the overall progress bar
-            self.parent.overall_progress += delta
-            self.parent.update_overall()
-
-            self.old_progress = self.progress
         else:
             # If task is complete
             if self.progress == 100 or message == "Error":
                 self.parent.overall_completed_tasks += 1
 
-            # Update the overall progress bar
-            self.parent.overall_progress += delta
-            self.old_progress = self.progress
-
             self.parent.log(f"{self.song.name} - {self.song.artist}: {message}")
-            self.parent.update_overall()
+
+        # Update the overall progress bar
+        if self.parent.song_count == self.parent.overall_completed_tasks:
+            self.parent.overall_progress = self.parent.song_count * 100
+        else:
+            self.parent.overall_progress += delta
+
+        self.parent.update_overall()
+        self.old_progress = self.progress
 
     def notify_error(self, message: str, traceback: Exception) -> None:
         """
         Logs an error message.
         """
 
-        self.update(message="Error")
+        self.update("Error")
 
         self.parent.debug(message)
-        self.parent.error(str(traceback))
+        self.parent.error(f"{traceback.__class__.__name__}: {traceback}")
 
-    def notify_download_complete(self, status="Converting") -> None:
+    def notify_download_complete(self, status="Embeding metadata") -> None:
         """
         Notifies the progress handler that the song has been downloaded.
-        """
-
-        self.progress = 75
-        self.update(status)
-
-    def notify_conversion_complete(self, status="Tagging") -> None:
-        """
-        Notifies the progress handler that the song has been converted.
         """
 
         self.progress = 95
@@ -409,20 +397,19 @@ class SongTracker:
         self.progress = 100
         self.update(status)
 
-    def progress_hook(self, *args, **_) -> None:
+    def notify_download_skip(self, status="Skipped") -> None:
+        """
+        Notifies the progress handler that the song has been skipped.
+        """
+
+        self.progress = 100
+        self.update(status)
+
+    def progress_hook(self, progress: int) -> None:
         """
         Updates the progress.
         """
 
-        # YT-dlp progress hook
-        if isinstance(args, tuple) and len(args) == 1:
-            data = args[0]
-            status = data.get("status")
-            file_bytes = data.get("total_bytes")
-            downloaded_bytes = data.get("downloaded_bytes")
-            if None not in [status, file_bytes, downloaded_bytes]:
-                if status == "downloading":
-                    if file_bytes and downloaded_bytes:
-                        self.progress = downloaded_bytes / file_bytes * 75
+        self.progress = int(progress * 0.95)
 
         self.update("Downloading")
