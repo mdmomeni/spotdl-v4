@@ -31,6 +31,7 @@ ALLOWED_ORIGINS = [
     "*",
 ]
 
+
 class App:
     server: Any
     downloader: Downloader
@@ -90,6 +91,7 @@ class SettingsModel(BaseModel):
     user_auth: Optional[bool]
     threads: Optional[int]
 
+
 app = App()
 app.server = FastAPI()
 app.server.add_middleware(
@@ -104,7 +106,7 @@ nest_asyncio.apply()
 
 
 class WSProgressHandler:
-    instances = []
+    instances: List["WSProgressHandler"] = []
 
     def __init__(self, websocket: WebSocket, client_id: str):
         self.client_id = client_id
@@ -366,6 +368,7 @@ def change_settings(settings: SettingsModel) -> bool:
 
     return True
 
+
 class SPAStaticFiles(StaticFiles):
     async def get_response(self, path: str, scope):
         response = await super().get_response(path, scope)
@@ -382,10 +385,14 @@ def web(settings: Dict[str, Any]):
     web_app_dir = str(get_spotdl_path().absolute())
 
     # Get web client from CDN (github for now)
-    download_github_dir("https://github.com/phcreery/web-ui/tree/master/dist", output_dir=web_app_dir)
+    download_github_dir(
+        "https://github.com/phcreery/web-ui/tree/master/dist", output_dir=web_app_dir
+    )
 
     # Serve web client SPA
-    app.server.mount("/", SPAStaticFiles(directory=web_app_dir + "/dist", html=True), name="static")
+    app.server.mount(
+        "/", SPAStaticFiles(directory=web_app_dir + "/dist", html=True), name="static"
+    )
 
     loop = asyncio.new_event_loop()
     app.loop = loop

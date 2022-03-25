@@ -11,6 +11,7 @@ from spotdl import _version
 REPO = "spotdl/spotify-downloader"
 WEB_APP_URL = "https://github.com/spotdl/web-ui/tree/master/dist"
 
+
 def get_status(start: str, end: str, repo: str = REPO) -> Tuple[str, int, int]:
     """
     Get the status of a commit range.
@@ -82,6 +83,7 @@ def check_for_updates(repo: str = REPO) -> str:
 
     return message
 
+
 def create_github_url(url: str = WEB_APP_URL):
     """
     From the given url, produce a URL that is compatible with Github's REST API. Can handle blob or tree paths.
@@ -114,7 +116,10 @@ def create_github_url(url: str = WEB_APP_URL):
 
     raise ValueError("The given url is not a valid GitHub url")
 
-def download_github_dir(repo_url: str = WEB_APP_URL, flatten: bool = False, output_dir: str = "./"):
+
+def download_github_dir(
+    repo_url: str = WEB_APP_URL, flatten: bool = False, output_dir: str = "./"
+):
     """
     Downloads the files and directories in repo_url. If flatten is specified, the contents of any and all
     sub-directories will be pulled upwards into the root folder.
