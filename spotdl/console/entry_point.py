@@ -86,9 +86,6 @@ def console_entry_point():
         else:
             settings[key] = config[key]
 
-    if arguments.query and "saved" in arguments.query and not settings["user_auth"]:
-        raise SpotifyError("You must be logged in to use the saved query.")
-
     # Initialize spotify client
     SpotifyClient.init(
         client_id=settings["client_id"],
@@ -118,6 +115,9 @@ def console_entry_point():
         settings["log_level"] = "CRITICAL"
 
     if arguments.operation in ["download", "preload", "sync"]:
+        if arguments.query and "saved" in arguments.query and not settings["user_auth"]:
+            raise SpotifyError("You must be logged in to use the saved query.")
+
         # Initialize the downloader
         # for download, load and preload operations
         downloader = Downloader(

@@ -197,7 +197,7 @@ def create_file_name(
     santitized_parts = []
     for part in file.parts:
         match = re.search(r"[^\.*](.*)[^\.*$]", part)
-        if match:
+        if match and part != ".spotdl":
             santitized_parts.append(match.group(0))
         else:
             santitized_parts.append(part)

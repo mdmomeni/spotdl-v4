@@ -58,27 +58,26 @@ def parse_main_options(parser: _ArgumentGroup):
     Parse main options from the command line.
     """
 
-    if not getattr(sys, "frozen", False) and len(sys.argv) != 1:
-        # Don't add positional argument if environment is frozen
-
-        # Add mode argument
-        parser.add_argument(
-            "operation",
-            choices=OPERATIONS,
-            help="The operation to perform.",
-        )
+    # Add operation argument
+    operation = parser.add_argument(
+        "operation",
+        choices=OPERATIONS,
+        help="The operation to perform.",
+    )
 
     # Add query argument
-    parser.add_argument(
+    query = parser.add_argument(
         "query",
-        nargs="+"
-        if len(sys.argv) > 1
-        and "web" != sys.argv[1]
-        or not getattr(sys, "frozen", False)
-        else "?",
+        nargs="+",
         type=str,
         help="URL for a song/playlist/album/artist/etc. to download.",
     )
+
+    if (getattr(sys, "frozen", False) and len(sys.argv) < 2) or sys.argv[1] == "web":
+        if sys.argv[1] != "web":
+            parser._remove_action(operation)  # type: ignore
+
+        parser._remove_action(query)  # type: ignore
 
     # Audio provider argument
     parser.add_argument(
