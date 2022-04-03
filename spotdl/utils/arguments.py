@@ -75,9 +75,9 @@ def parse_main_options(parser: _ArgumentGroup):
 
     if (getattr(sys, "frozen", False) and len(sys.argv) < 2) or sys.argv[1] == "web":
         if sys.argv[1] != "web":
-            parser._remove_action(operation)  # type: ignore
+            parser._remove_action(operation)  # pylint: disable=protected-access
 
-        parser._remove_action(query)  # type: ignore
+        parser._remove_action(query)  # pylint: disable=protected-access
 
     # Audio provider argument
     parser.add_argument(
