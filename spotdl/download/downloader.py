@@ -310,7 +310,8 @@ class Downloader:
                 # and save it in the errors directory
                 # raise an exception with file path
                 file_name = (
-                    get_errors_path() / f"ffmpeg_error_{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.txt"
+                    get_errors_path()
+                    / f"ffmpeg_error_{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.txt"
                 )
                 with open(file_name, "w", encoding="utf-8") as error_path:
                     json.dump(result, error_path, ensure_ascii=False, indent=4)
