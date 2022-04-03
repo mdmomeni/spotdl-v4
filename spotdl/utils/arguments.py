@@ -73,8 +73,8 @@ def parse_main_options(parser: _ArgumentGroup):
         help="URL for a song/playlist/album/artist/etc. to download.",
     )
 
-    if (getattr(sys, "frozen", False) and len(sys.argv) < 2) or sys.argv[1] == "web":
-        if sys.argv[1] != "web":
+    if (getattr(sys, "frozen", False) and len(sys.argv) < 2) or (len(sys.argv) > 1 and sys.argv[1] == "web"):
+        if len(sys.argv) > 1 and sys.argv[1] != "web":
             parser._remove_action(operation)  # pylint: disable=protected-access
 
         parser._remove_action(query)  # pylint: disable=protected-access
