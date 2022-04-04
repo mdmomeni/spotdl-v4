@@ -79,9 +79,7 @@ def parse_main_options(parser: _ArgumentGroup):
         is_web = False
 
     is_frozen = getattr(sys, "frozen", False)
-    if (is_frozen and len(sys.argv) < 2) or (
-        len(sys.argv) > 1 and is_web
-    ):
+    if (is_frozen and len(sys.argv) < 2) or (len(sys.argv) > 1 and is_web):
         if not is_web or (is_frozen and not is_web):
             parser._remove_action(operation)  # pylint: disable=protected-access
 
