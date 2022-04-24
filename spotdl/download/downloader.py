@@ -151,7 +151,7 @@ class Downloader:
             self.loop = loop
 
         # semaphore is required to limit concurrent asyncio executions
-        self.semaphore = asyncio.Semaphore(threads, loop=self.loop)
+        self.semaphore = asyncio.Semaphore(threads)
 
         # thread pool executor is used to run blocking (CPU-bound) code from a thread
         self.thread_executor = concurrent.futures.ThreadPoolExecutor(
@@ -278,10 +278,6 @@ class Downloader:
         for audio_provider in self.audio_providers:
             url = audio_provider.search(song)
             if url:
-                self.progress_handler.debug(
-                    f"Found {song.display_name} by {song.artist} on "
-                    f"{audio_provider.name}"
-                )
                 return url, audio_provider
 
             self.progress_handler.debug(
